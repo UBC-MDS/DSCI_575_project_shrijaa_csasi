@@ -4,8 +4,7 @@ channels:
   - defaults
 
 dependencies:
-  - python=3.11
-  - pip
+  - python=3.11 
   - numpy
   - pandas
   - jupyterlab
@@ -13,5 +12,8 @@ dependencies:
   - faiss-cpu
   - duckdb
   - requests
+  - matplotlib
+  - setuptools
+  - pip
   - pip:
       - -r requirements.txt
