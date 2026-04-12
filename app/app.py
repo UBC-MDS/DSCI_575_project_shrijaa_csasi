@@ -72,6 +72,7 @@ def semantic_search(query, top_k):
     return [
         {
             "title": f"Semantic Product {i+1}",
+            "review_title":f"Semantic Product Review Title {i+1}",
             "review": "This is a semantic search result...",
             "rating": 4.8,
             "score": 0.95 - (i * 0.05)
@@ -139,7 +140,7 @@ if st.session_state.results:
     for i, res in enumerate(st.session_state.results):
         with st.container():
             st.markdown(f"### {i+1}. {res['title']}")
-            st.markdown(f"**Review Title** {res['review_title']}")
+            st.markdown(f"**Review Title:** {res['review_title']}")
             st.write(f"**Review:** {res['review'][:200]}...")
             st.write(f"**Rating:** {res['rating']}")
             st.write(f"**Score:** {res['score']}")
