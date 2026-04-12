@@ -51,7 +51,7 @@ def build_bm25(documents):
         doc.page_content = " ".join(tokens)  
 
     retriever = BM25Retriever.from_documents(documents)
-    return retriever
+    return retriever,tokenized_corpus
 
 # Save BM25 Index
 def save_bm25(retriever,tokenized_corpus):
