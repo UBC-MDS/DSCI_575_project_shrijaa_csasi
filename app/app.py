@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime 
 import os
 import sys
+import re
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 if ROOT_DIR not in sys.path:
@@ -103,7 +104,7 @@ def save_feedback(query, result, feedback):
 with st.form("search_form"):
     query = st.text_input(
     "Search",
-    placeholder="e.g. noise cancelling headphones",
+    placeholder="e.g. Taylor Swift - Red (Deluxe Edition)",
     key="search_box"
 )
     submitted = st.form_submit_button("Search")
@@ -115,8 +116,9 @@ if submitted and query:
         # Convert LangChain Documents → your app format
         st.session_state.results = [
             {
-                "title": doc.metadata.get("title", "No title"),
-                "review": doc.page_content,
+                
+                "title": doc.metadata.get("product_title", doc.metadata.get("title", "No title")),
+                "review": re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(doc.metadata.get("text", "")))).strip(),  
                 "rating": doc.metadata.get("rating", "N/A"),
                 "score": "BM25"
             }
