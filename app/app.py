@@ -117,8 +117,9 @@ if submitted and query:
         st.session_state.results = [
             {
                 
-                "title": doc.metadata.get("product_title", doc.metadata.get("title", "No title")),
-                "review": re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(doc.metadata.get("text", "")))).strip(),  
+                "title": doc.metadata.get("product_title"),
+                "review_title": doc.metadata.get("title", "No title"),
+                "review": re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(doc.page_content))).strip(),
                 "rating": doc.metadata.get("rating", "N/A"),
                 "score": "BM25"
             }
@@ -138,7 +139,7 @@ if st.session_state.results:
     for i, res in enumerate(st.session_state.results):
         with st.container():
             st.markdown(f"### {i+1}. {res['title']}")
-
+            st.markdown(f"**Review Title** {res['review_title']}")
             st.write(f"**Review:** {res['review'][:200]}...")
             st.write(f"**Rating:** {res['rating']}")
             st.write(f"**Score:** {res['score']}")
