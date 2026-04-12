@@ -2,15 +2,32 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime 
 import os
+import sys
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+from src.bm25 import load_bm25, search as bm25_search
+
+
+
+
+print("ROOT_DIR:", ROOT_DIR)
+print("SYS PATH:", sys.path)
 
 # Config
 st.set_page_config(page_title="Product Search Engine", layout="wide")
 
 #file variables
 FEEDBACK_FILE = "feedback.csv"
-top_k = 3
+top_k = 5
 
+# Load BM25 retriever (cached)
+@st.cache_resource
+def get_bm25():
+    return load_bm25()
+
+bm25_retriever = get_bm25()
 
 # Session State 
 if "results" not in st.session_state:
@@ -49,18 +66,7 @@ if st.session_state.prev_mode != search_mode:
     st.session_state.prev_mode = search_mode
     st.rerun()
 
-# Dummy Retrieval Functions
-def bm25_search(query, top_k):
-    return [
-        {
-            "title": f"BM25 Product {i+1}",
-            "review": "This is a sample review text for BM25...",
-            "rating": 4.5,
-            "score": 12.3 - i
-        }
-        for i in range(top_k)
-    ]
-
+#Dummy Retrieval Functions
 def semantic_search(query, top_k):
     return [
         {
@@ -104,7 +110,18 @@ with st.form("search_form"):
 
 if submitted and query:
     if search_mode == "BM25":
-        st.session_state.results = bm25_search(query, top_k)
+        docs = bm25_search(query, bm25_retriever, k=top_k)
+
+        # Convert LangChain Documents → your app format
+        st.session_state.results = [
+            {
+                "title": doc.metadata.get("title", "No title"),
+                "review": doc.page_content,
+                "rating": doc.metadata.get("rating", "N/A"),
+                "score": "BM25"
+            }
+            for doc in docs
+        ]
     else:
         st.session_state.results = semantic_search(query, top_k)
 
