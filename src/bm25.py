@@ -6,6 +6,7 @@ import pickle
 import pandas as pd
 from langchain_community.retrievers import BM25Retriever
 from langchain_core.documents import Document
+from pathlib import Path
 import nltk
 from nltk.corpus import stopwords
 nltk.download("stopwords", quiet=True)
