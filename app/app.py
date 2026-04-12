@@ -2,15 +2,33 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime 
 import os
+import sys
+import re
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+from src.bm25 import load_bm25, search as bm25_search
+
+
+
+
+print("ROOT_DIR:", ROOT_DIR)
+print("SYS PATH:", sys.path)
 
 # Config
 st.set_page_config(page_title="Product Search Engine", layout="wide")
 
 #file variables
 FEEDBACK_FILE = "feedback.csv"
-top_k = 3
+top_k = 5
 
+# Load BM25 retriever (cached)
+@st.cache_resource
+def get_bm25():
+    return load_bm25()
+
+bm25_retriever = get_bm25()
 
 # Session State 
 if "results" not in st.session_state:
@@ -49,22 +67,12 @@ if st.session_state.prev_mode != search_mode:
     st.session_state.prev_mode = search_mode
     st.rerun()
 
-# Dummy Retrieval Functions
-def bm25_search(query, top_k):
-    return [
-        {
-            "title": f"BM25 Product {i+1}",
-            "review": "This is a sample review text for BM25...",
-            "rating": 4.5,
-            "score": 12.3 - i
-        }
-        for i in range(top_k)
-    ]
-
+#Dummy Retrieval Functions
 def semantic_search(query, top_k):
     return [
         {
             "title": f"Semantic Product {i+1}",
+            "review_title":f"Semantic Product Review Title {i+1}",
             "review": "This is a semantic search result...",
             "rating": 4.8,
             "score": 0.95 - (i * 0.05)
@@ -97,14 +105,27 @@ def save_feedback(query, result, feedback):
 with st.form("search_form"):
     query = st.text_input(
     "Search",
-    placeholder="e.g. noise cancelling headphones",
+    placeholder="e.g. Taylor Swift - Red (Deluxe Edition)",
     key="search_box"
 )
     submitted = st.form_submit_button("Search")
 
 if submitted and query:
     if search_mode == "BM25":
-        st.session_state.results = bm25_search(query, top_k)
+        docs = bm25_search(query, bm25_retriever, k=top_k)
+
+        # Convert LangChain Documents → your app format
+        st.session_state.results = [
+            {
+                
+                "title": doc.metadata.get("product_title"),
+                "review_title": doc.metadata.get("title", "No title"),
+                "review": re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(doc.page_content))).strip(),
+                "rating": doc.metadata.get("rating", "N/A"),
+                "score": "BM25"
+            }
+            for doc in docs
+        ]
     else:
         st.session_state.results = semantic_search(query, top_k)
 
@@ -119,7 +140,7 @@ if st.session_state.results:
     for i, res in enumerate(st.session_state.results):
         with st.container():
             st.markdown(f"### {i+1}. {res['title']}")
-
+            st.markdown(f"**Review Title:** {res['review_title']}")
             st.write(f"**Review:** {res['review'][:200]}...")
             st.write(f"**Rating:** {res['rating']}")
             st.write(f"**Score:** {res['score']}")
