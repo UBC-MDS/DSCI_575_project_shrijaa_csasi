@@ -208,5 +208,4 @@ __marimo__/
 
 #ignore data files
 data/raw/
-data/processed/
 .DS_Store
