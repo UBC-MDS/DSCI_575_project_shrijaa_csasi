@@ -1,0 +1,6 @@
+streamlit
+langchain_core
+langchain_community
+sentence_transformers
+rank-bm25
+langchain-huggingface

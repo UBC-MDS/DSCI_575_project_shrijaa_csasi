@@ -1,0 +1,19 @@
+name: search-app
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.11 
+  - numpy
+  - pandas
+  - jupyterlab
+  - nltk
+  - faiss-cpu
+  - duckdb
+  - requests
+  - matplotlib
+  - setuptools
+  - pip
+  - pip:
+      - -r requirements.txt
