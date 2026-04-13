@@ -1,44 +1,17 @@
 # src/bm25.py
 
 import os
-import re
 import pickle
-import pandas as pd
-from langchain_community.retrievers import BM25Retriever
-from langchain_core.documents import Document
 from pathlib import Path
-import nltk
-from nltk.corpus import stopwords
-nltk.download("stopwords", quiet=True)
-STOPWORDS = set(stopwords.words("english"))
+from langchain_community.retrievers import BM25Retriever
+from src.utils import load_documents, preprocess_text
+
 
 # Paths
 _ROOT = Path(__file__).resolve().parents[1]
 DATA_PATH  = str(_ROOT / "data/processed/documents.parquet")
 INDEX_PATH = str(_ROOT / "data/processed/bm25_index.pkl")
 CORPUS_PATH = str(_ROOT / "data/processed/bm25_corpus.pkl")
-
-
-# Text Preprocessing
-def preprocess_text(text):
-    text = text.lower()
-    text = re.sub(r"[^\w\s]", "", text)  # remove punctuation
-    tokens = text.split()  # whitespace tokenizer
-    tokens = [token for token in tokens if token not in STOPWORDS]
-    return tokens
-
-# Load Documents
-def load_documents():
-    df = pd.read_parquet(DATA_PATH)
-    df = df.dropna(subset=['text_clean'])
-    return [
-        Document(
-            page_content=row['text_clean'],
-            metadata={k: (v.tolist() if hasattr(v, 'tolist') else v)
-                      for k, v in row.items() if k != 'text_clean'}
-        )
-        for _, row in df.iterrows()
-    ]
 
 # Build BM25 Index
 def build_bm25(documents):
@@ -74,11 +47,12 @@ def search(query, retriever, k=5):
     results = retriever.invoke(query_clean)
 
     return results
+
 # Main (for building index)
 if __name__ == "__main__":
     os.makedirs(str(_ROOT / "data/processed"), exist_ok=True)
 
-    documents = load_documents()
+    documents = load_documents(DATA_PATH)
     retriever, tokenized_corpus = build_bm25(documents)
 
     save_bm25(retriever,tokenized_corpus)
