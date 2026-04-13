@@ -172,9 +172,8 @@ Semantic search performs better but is not perfect. BM25 fails due to lack of ex
 - BM25 relies heavily on exact keyword overlap and fails when queries are vague or descriptive.
 - Semantic search captures contextual meaning but sometimes retrieves broader or less precise results.
 - Both methods struggle with complex queries involving subjective or emotional intent (e.g., "heartbreak").
-- A hybrid approach combining BM25 and semantic search could improve retrieval performance.Loading retrievers...
-Done.
-
+- A hybrid approach combining BM25 and semantic search could improve retrieval performance.
+  
 ## Retrieved Results
 
 ### Query: "taylor swift album"
