@@ -6,7 +6,6 @@ from src.bm25 import load_bm25
 from src.semantic import load_faiss
 from src.utils import preprocess_text
 
-_ROOT = Path(__file__).resolve().parents[1]
 
 def build_hybrid_retriever(bm25_weight=0.4, semantic_weight=0.6, k=5):
     """Returns a dict with both retrievers and their weights."""
