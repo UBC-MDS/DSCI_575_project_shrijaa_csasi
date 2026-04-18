@@ -87,7 +87,7 @@ user can look up the exact product on Amazon (amazon.com/dp/<ASIN>) to verify th
 
 #### Query 9: "best album for heartbreak" 
 - **Accuracy:** Complex emotional query, however the LLM isn't hallucinating album names not in the retrieved context.  
-- **Completeness:** Likseems to be incomplete, emotional intent is hard to capture from review text.  
+- **Completeness:** Seems to be incomplete, emotional intent is hard to capture from review text.  
 - **Fluency:** Answer is fluent but weakly grounded.
 
 #### Query 10: "music without lyrics for focus"
