@@ -62,6 +62,12 @@ DSCI_575_project_shrijaa_csasi/
     conda activate search-app
     ```
 
+### Environment Variables
+Create a `.env` file in the project root:
+```
+GROQ_API_KEY=<your_key_from_https://console.groq.com>
+```
+
 ## Data Pipeline
 
 Run the following steps in order. All outputs are saved to data/processed.
@@ -96,7 +102,7 @@ streamlit run app/app.py --server.fileWatcherType none
 - Semantic mode — embedding-based search with similarity scores
 - 👍 / 👎 feedback stored to feedback.csv
 
-**Dataset:**
+## Dataset:
 - Source: [Amazon Reviews 2023](https://amazon-reviews-2023.github.io/) dataset (Digital Music category)
 - Category: Digital Music
 - Files used:

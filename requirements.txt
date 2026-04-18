@@ -4,6 +4,6 @@ langchain-community
 sentence-transformers
 rank-bm25
 langchain-huggingface
-
+langchain-groq
 groq
 python-dotenv
