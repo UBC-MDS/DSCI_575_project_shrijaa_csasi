@@ -1,32 +1,23 @@
 # src/rag_pipeline.py
 
 import re
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
+import os
+from groq import Groq
 from langchain_core.runnables import RunnableLambda
+
 from src.semantic import load_faiss, search_faiss
 from src.prompts import build_rag_prompt
 
 
-MODEL_NAME = "microsoft/Phi-4-mini-instruct"
+MODEL_NAME = "llama-3.1-8b-instant"
 
 
 # -----------------------------
-# LLM Loading
+# LLM Loading (GROQ)
 # -----------------------------
-def load_llm(model_name: str = MODEL_NAME):
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_name,
-        use_fast=False
-    )
-
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        torch_dtype=torch.float32,
-        device_map="auto"
-    )
-
-    return tokenizer, model
+def load_llm():
+    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+    return client
 
 
 # -----------------------------
@@ -42,22 +33,14 @@ def clean_text(text: str) -> str:
 # Retrieval
 # -----------------------------
 def retrieve_documents(query: str, vector_store, k: int = 5):
-    """
-    Retrieve top-k documents from FAISS.
-    
-    Returns:
-        list of (Document, score)
-    """
     return search_faiss(query, vector_store, k=k)
 
 
 # -----------------------------
 # Context Building
 # -----------------------------
-def build_context(docs_with_scores, max_docs: int = 3, max_chars: int = 500) -> str:
-    """
-    Convert retrieved documents into a prompt-ready context block.
-    """
+def build_context(docs_with_scores, max_docs: int = 3, max_chars: int = 500):
+
     context_blocks = []
 
     for i, (doc, score) in enumerate(docs_with_scores[:max_docs], start=1):
@@ -78,24 +61,20 @@ def build_context(docs_with_scores, max_docs: int = 3, max_chars: int = 500) -> 
 
 
 # -----------------------------
-# Generation
+# Generation (GROQ)
 # -----------------------------
-def generate_answer(prompt: str, tokenizer, model, max_new_tokens: int = 200) -> str:
-    inputs = tokenizer(prompt, return_tensors="pt", truncation=True)
+def generate_answer(prompt, client):
 
-    outputs = model.generate(
-        **inputs,
-        max_new_tokens=max_new_tokens,
-        do_sample=True,
-        temperature=0.7
+    response = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+        max_tokens=200
     )
 
-    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-    if "Answer clearly and concisely:" in response:
-        return response.split("Answer clearly and concisely:")[-1].strip()
-
-    return response.strip()
+    return response.choices[0].message.content.strip()
 
 
 # -----------------------------
@@ -104,31 +83,24 @@ def generate_answer(prompt: str, tokenizer, model, max_new_tokens: int = 200) ->
 def run_rag_pipeline(
     query: str,
     vector_store=None,
-    tokenizer=None,
-    model=None,
+    llm=None,
     k: int = 5,
     max_docs: int = 3,
 ):
-    """
-    Full RAG pipeline:
-    1. Retrieve documents
-    2. Build context
-    3. Build prompt
-    4. Generate answer
 
-    Returns:
-        dict with answer, prompt, context, retrieved_docs
-    """
     if vector_store is None:
         vector_store = load_faiss()
 
-    if tokenizer is None or model is None:
-        tokenizer, model = load_llm()
+    if llm is None:
+        llm = load_llm()
 
     retrieved_docs = retrieve_documents(query, vector_store, k=k)
+
     context = build_context(retrieved_docs, max_docs=max_docs)
+
     prompt = build_rag_prompt(query, context)
-    answer = generate_answer(prompt, tokenizer, model)
+
+    answer = generate_answer(prompt, llm)
 
     return {
         "query": query,
@@ -154,16 +126,12 @@ def make_prompt_step():
     return RunnableLambda(lambda x: build_rag_prompt(x["query"], x["context"]))
 
 
-def make_generation_step(tokenizer, model):
-    return RunnableLambda(lambda prompt: generate_answer(prompt, tokenizer, model))
+def make_generation_step(llm):
+    return RunnableLambda(lambda prompt: generate_answer(prompt, llm))
 
 
-def build_lcel_rag_chain(vector_store, tokenizer, model, k: int = 5, max_docs: int = 3):
-    """
-    Build a simple LCEL-style RAG chain.
-    Input: query (str)
-    Output: answer (str)
-    """
+def build_lcel_rag_chain(vector_store, llm, k: int = 5, max_docs: int = 3):
+
     retrieval_step = make_retrieval_step(vector_store, k=k)
     context_step = make_context_step(max_docs=max_docs)
 
@@ -174,7 +142,7 @@ def build_lcel_rag_chain(vector_store, tokenizer, model, k: int = 5, max_docs: i
 
     prompt_input_step = RunnableLambda(prepare_prompt_inputs)
     prompt_step = make_prompt_step()
-    generation_step = make_generation_step(tokenizer, model)
+    generation_step = make_generation_step(llm)
 
     chain = prompt_input_step | prompt_step | generation_step
     return chain
