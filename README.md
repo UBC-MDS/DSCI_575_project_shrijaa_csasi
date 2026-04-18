@@ -31,6 +31,7 @@ DSCI_575_project_shrijaa_csasi/
 │ ├── utils.py # shared document loading and text preprocessing
 │ ├── bm25.py # BM25 retriever (build, save, load, search)
 │ ├── semantic.py # Semantic retriever (FAISS + embeddings)
+| ├── hybrid.py # Semantic + BM25 retrievers
 | ├── rag_pipeline.py # RAG pipeline (retrieval + generation)
 │ └── prompts.py # prompt templates for RAG
 │
@@ -39,7 +40,10 @@ DSCI_575_project_shrijaa_csasi/
 | └── milestone2_discussion.md # RAG evaluation and prompt comparison
 │
 └── app/
-  └── app.py # Streamlit search app
+  ├── app.py # Streamlit search app
+  ├── rag_mode.py
+  └── search_mode.py
+
 ```
 
 ## Setup
@@ -113,7 +117,7 @@ streamlit run app/app.py --server.fileWatcherType none
 This project extends search with a **Retrieval-Augmented Generation (RAG)** pipeline.
 
 - **Retrievers**: Semantic (FAISS), BM25, and Hybrid (combined + deduplicated results)  
-- **Context Building**: Cleans and structures top-k reviews into a prompt-ready format  
+- **Context Building**: Cleans and structures top-5 reviews into a prompt-ready format  
 - **Prompting**: Templates defined in `src/prompts.py`  
 - **LLM**: Groq API (`llama-3.1-8b-instant`) for answer generation  
 - **Pipeline**: Implemented in `src/rag_pipeline.py` using LCEL  
