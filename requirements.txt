@@ -1,6 +1,9 @@
 streamlit
-langchain_core
-langchain_community
-sentence_transformers
+langchain-core
+langchain-community
+sentence-transformers
 rank-bm25
 langchain-huggingface
+langchain-groq
+groq
+python-dotenv
