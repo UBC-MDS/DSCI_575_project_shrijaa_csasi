@@ -10,12 +10,12 @@ from src.semantic import load_faiss, search_faiss as semantic_search
 FEEDBACK_FILE = "feedback.csv"
 TOP_K = 5
 
-
+# Load BM25 retriever (cached) 
 @st.cache_resource
 def get_bm25():
     return load_bm25()
 
-
+# Load FAISS retriever (cached) 
 @st.cache_resource
 def get_faiss():
     return load_faiss()
@@ -60,7 +60,8 @@ def render_search_mode():
     search_mode = st.radio(
         "Search mode:",
         ["BM25", "Semantic"],
-        horizontal=True
+        horizontal=True,
+        help="BM25: fast keyword matching. Semantic: meaning-based similarity using sentence embeddings." 
     )
 
     if "prev_mode" not in st.session_state:
@@ -77,14 +78,15 @@ def render_search_mode():
     with st.form("search_form"):
         query = st.text_input(
             "Enter your search query:",
+            placeholder="e.g. Taylor Swift - Red (Deluxe Edition)",
             key=f"search_box_{st.session_state.input_counter}"
         )
 
-        col1, col2 = st.columns([1, 1])
+        col1, col2, col3 = st.columns([1, 1, 5])
         with col1:
-            submitted = st.form_submit_button("Search")
+            submitted = st.form_submit_button("Search", type="primary", use_container_width=True)
         with col2:
-            reset = st.form_submit_button("Reset")
+            reset = st.form_submit_button("Reset", use_container_width=True)
 
     if reset:
         st.session_state.results = []
@@ -100,7 +102,8 @@ def render_search_mode():
                 {
                     "title": doc.metadata.get("product_title"),
                     "review_title": doc.metadata.get("title", "No title"),
-                    "review": clean_text(doc.page_content),  # 🔥 FIXED
+                    # only removing HTML tags and extra whitespace, no tokenization or stopword removal since we want to show the original review text in the results
+                    "review": re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(doc.metadata.get("text", "")))).strip(), 
                     "rating": doc.metadata.get("rating", "N/A"),
                     "score": f"BM25 rank #{i+1}"
                 }
@@ -114,7 +117,8 @@ def render_search_mode():
                 {
                     "title": doc.metadata.get("product_title"),
                     "review_title": doc.metadata.get("title", "No title"),
-                    "review": clean_text(doc.page_content),  # 🔥 FIXED
+                    # only removing HTML tags and extra whitespace, no tokenization or stopword removal since we want to show the original review text in the results
+                    "review": re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(doc.metadata.get("text", "")))).strip(),  
                     "rating": doc.metadata.get("rating", "N/A"),
                     "score": f"Similarity rank #{i+1}"
                 }
@@ -129,15 +133,40 @@ def render_search_mode():
 
         for i, res in enumerate(st.session_state.results):
             with st.container(border=True):
-
-                st.markdown(f"#### {i+1}. {res['title']}")
-                st.caption(res["score"])
+                # Title + score on same row
+                h_col, s_col = st.columns([4, 1]) 
+                with h_col:
+                    st.markdown(f"#### {i+1}. {res['title']}")
+                with s_col:
+                    st.caption(res["score"])
 
                 st.markdown(f"**Review Title:** {res['review_title']}")
-                st.write(res["review"][:300] + "...")
+                # Star rating
+                try:
+                    r = float(res['rating'])
+                    stars = "★" * int(r) + "☆" * (5 - int(r))
+                    st.markdown(f"**Rating:** {stars} ({res['rating']})")
+                except (ValueError, TypeError):
+                    st.markdown(f"**Rating:** {res['rating']}")
 
-                if st.button("👍", key=f"up_{i}"):
-                    save_feedback(st.session_state.query, res, "upvote")
+                # Review preview + expandable full review
+                review_text = res['review']
+                if len(review_text) > 300:
+                    st.write(review_text[:300] + "...")
+                    with st.expander("Read full review"):
+                        st.write(review_text)
+                else:
+                    st.write(review_text)
 
-                if st.button("👎", key=f"down_{i}"):
-                    save_feedback(st.session_state.query, res, "downvote")
+                # Feedback row
+                f_col, up_col, down_col = st.columns([6, 1, 1])
+                with f_col:
+                    st.caption("Was this result helpful?")
+                with up_col:
+                    if st.button("👍 Yes", key=f"up_{i}", use_container_width=True):
+                        save_feedback(st.session_state.query, res, "upvote")
+                        st.success("Thanks! Glad this was helpful.")
+                with down_col:
+                    if st.button("👎 No", key=f"down_{i}", use_container_width=True):
+                        save_feedback(st.session_state.query, res, "downvote")
+                        st.warning("Got it! We'll work on improving results.")

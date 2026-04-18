@@ -13,14 +13,20 @@ from app.rag_mode import render_rag_mode
 
 st.set_page_config(page_title="Product Search Engine", layout="wide")
 
+if "page" not in st.session_state:
+    st.session_state.page = "Search"
+
+with st.sidebar:   
+    if st.button("Search", use_container_width=True):
+        st.session_state.page = "Search"
+        st.rerun()
+    if st.button("RAG", use_container_width=True):
+        st.session_state.page = "RAG"
+        st.rerun()
+
 st.title("Amazon Review Search")
-st.caption("Search through Amazon Digital Music reviews using keyword (BM25), semantic similarity, or RAG.")
-
-# Tabs
-tab1, tab2 = st.tabs(["🔍 Search", "RAG"])
-
-with tab1:
+st.caption("Search through Amazon Digital Music reviews using keyword (BM25) or semantic similarity. Or ask questions about the products using AI-powered retrieval.")
+if st.session_state.page == "Search":
     render_search_mode()
-
-with tab2:
+else:
     render_rag_mode()

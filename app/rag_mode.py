@@ -3,8 +3,8 @@
 import streamlit as st
 import re
 
-from src.rag_pipeline import run_rag_pipeline
-
+from src.rag_pipeline import run_rag_pipeline, run_hybrid_rag_pipeline
+from src.prompts import prompt_v1, prompt_v2, prompt_v3, build_rag_prompt
 
 def clean_text(text):
     return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(text))).strip()
@@ -12,59 +12,70 @@ def clean_text(text):
 
 def render_rag_mode():
 
-    st.subheader("RAG Mode")
-
-    # 🔹 Mode selector
+    # Mode selector
     rag_mode = st.radio(
         "RAG Retrieval Mode:",
         ["Semantic RAG", "Hybrid RAG"],
         horizontal=True,
-        help="Semantic: FAISS retrieval. Hybrid: BM25 + Semantic (coming soon)."
+        help="Semantic: FAISS retrieval. Hybrid: BM25 + Semantic ensemble."
     )
 
     st.caption(f"Current mode: {rag_mode}")
 
-    # 🔹 Input
+    # Do not delete: this section is to test different prompt variants for RAG answer generation. 
+    # prompt_variant = st.selectbox(
+    #     "Prompt variant:",
+    #     ["V3 — Structured (default)", "V1 — Basic", "V2 — Strict"],
+    #     help="Experiment with different prompt styles."
+    # )
+    # PROMPT_MAP = {
+    #     "V1 — Basic": prompt_v1,
+    #     "V2 — Strict": prompt_v2,
+    #     "V3 — Structured (default)": prompt_v3,
+    # }
+    # selected_prompt_fn = PROMPT_MAP[prompt_variant]
+
+    # Input
     query = st.text_input(
         "Ask a question",
         placeholder="e.g. What is a good relaxing album?"
     )
 
-    # 🔹 Run
-    if st.button("Generate Answer") and query:
+    # Run
+    if st.button("Generate Answer", type="primary") and query:
 
         if rag_mode == "Semantic RAG":
             st.info("Using Semantic RAG (full pipeline)")
             result = run_rag_pipeline(query)
+            docs = result["retrieved_docs"]
 
         elif rag_mode == "Hybrid RAG":
-            st.info("Hybrid RAG (coming soon) — using semantic fallback")
-            result = run_rag_pipeline(query)
+            st.info("Using Hybrid RAG (BM25 + Semantic ensemble)")
+            result = run_hybrid_rag_pipeline(query)
+            docs = [(doc, None) for doc in result["retrieved_docs"]]
 
-        # 🔹 Extract outputs
-        answer = result["answer"]
-        docs = result["retrieved_docs"]
+        # Extract outputs
+        answer = result["answer"]        
         context = result["context"]
 
-        # 🔹 Answer panel (required)
-        st.markdown("## 🤖 Answer")
-
-        if rag_mode == "Hybrid RAG":
-            st.caption("⚠️ Hybrid retrieval not implemented yet. Using semantic fallback.")
-
+        # Answer panel 
+        st.markdown("## Answer")
         st.write(answer)
-
         st.divider()
 
-        # 🔹 Optional: show context (good for demo)
-        with st.expander("🔍 Context used for answer"):
+        # Optional: show context (good for demo)
+        with st.expander("Context used for answer"):
             st.write(context)
 
-        # 🔹 Retrieved documents
-        st.markdown("## 📄 Retrieved Documents")
+        # Retrieved documents
+        st.markdown("## Retrieved Documents")
 
         for i, (doc, score) in enumerate(docs):
-            st.markdown(f"### {i+1}. {doc.metadata.get('product_title')}")
-            st.write(clean_text(doc.page_content)[:200] + "...")
-            st.caption(f"Score: {score:.4f}")
+            st.markdown(f"### {i+1}. {doc.metadata.get('product_title', 'Unknown')}")
+            # only removing HTML tags and extra whitespace, no tokenization or stopword removal since we want to show the original review text in the results
+            st.write(re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(doc.metadata.get("text", "")))).strip()[:200] + "...")
+            if score is not None:
+                st.caption(f"Score: {score:.4f}")
+            else:
+                st.caption(f"Rank: {i+1}")
             st.divider()

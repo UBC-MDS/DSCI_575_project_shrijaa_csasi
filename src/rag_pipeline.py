@@ -7,6 +7,7 @@ from langchain_core.runnables import RunnableLambda
 
 from src.semantic import load_faiss, search_faiss
 from src.prompts import build_rag_prompt
+from src.hybrid import build_hybrid_retriever, search_hybrid
 
 
 MODEL_NAME = "llama-3.1-8b-instant"
@@ -48,9 +49,14 @@ def build_context(docs_with_scores, max_docs: int = 3, max_chars: int = 500):
         review_title = doc.metadata.get("title", "No review title")
         review_text = clean_text(doc.page_content)[:max_chars]
 
+        # the user can look up the exact product on Amazon (amazon.com/dp/<ASIN>) to verify the recommendation is real and not hallucinated
+        asin = doc.metadata.get("parent_asin", "N/A")
+        rating = doc.metadata.get("rating", "N/A")
         block = (
             f"[Document {i}]\n"
+            f"Product ASIN: {asin}\n"
             f"Product Title: {title}\n"
+            f"Rating: {rating}\n"
             f"Review Title: {review_title}\n"
             f"Review Text: {review_text}\n"
             f"Similarity Score: {score:.4f}"
@@ -85,7 +91,8 @@ def run_rag_pipeline(
     vector_store=None,
     llm=None,
     k: int = 5,
-    max_docs: int = 3,
+    max_docs: int = 3
+    #prompt_fn=None
 ):
 
     if vector_store is None:
@@ -99,6 +106,9 @@ def run_rag_pipeline(
     context = build_context(retrieved_docs, max_docs=max_docs)
 
     prompt = build_rag_prompt(query, context)
+    # if prompt_fn is None:
+    #     prompt_fn = build_rag_prompt
+    # prompt = prompt_fn(query, context) 
 
     answer = generate_answer(prompt, llm)
 
@@ -110,6 +120,45 @@ def run_rag_pipeline(
         "retrieved_docs": retrieved_docs,
     }
 
+# -----------------------------
+# Hybrid RAG Pipeline
+# -----------------------------
+def run_hybrid_rag_pipeline(
+        query: str, 
+        hybrid_retriever=None, 
+        llm=None, 
+        k: int = 5, 
+        max_docs: int = 3
+        # prompt_fn=None
+    ):
+
+    if hybrid_retriever is None:
+        hybrid_retriever = build_hybrid_retriever(k=k)
+
+    if llm is None:
+        llm = load_llm()
+
+    retrieved_docs = search_hybrid(query, hybrid_retriever, k=k)
+
+    # search_hybrid returns plain documents (no scores), so we assign a default score for context building
+    docs_with_scores = [(doc, 0.0) for doc in retrieved_docs]
+
+    context = build_context(docs_with_scores, max_docs=max_docs)
+
+    prompt = build_rag_prompt(query, context)
+    # if prompt_fn is None:
+    #     prompt_fn = build_rag_prompt
+    # prompt = prompt_fn(query, context)
+
+    answer = generate_answer(prompt, llm)
+
+    return {
+        "query": query,
+        "answer": answer,
+        "context": context,
+        "prompt": prompt,
+        "retrieved_docs": retrieved_docs,
+    }
 
 # -----------------------------
 # LCEL / Runnable Components
