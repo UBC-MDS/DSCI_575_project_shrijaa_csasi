@@ -27,6 +27,8 @@ DSCI_575_project_shrijaa_csasi/
 │ ├── milestone1_exploration.ipynb # EDA, preprocessing, LangChain docs
 | └── milestone2_rag.ipynb # RAG experiments and prompt evaluation
 │
+├── img/
+| └── 575_workflow_diagram.png
 ├── src/
 │ ├── utils.py # shared document loading and text preprocessing
 │ ├── bm25.py # BM25 retriever (build, save, load, search)
