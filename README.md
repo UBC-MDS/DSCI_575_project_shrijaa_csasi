@@ -8,7 +8,8 @@ This project explores retrieval methods on the [Amazon Reviews 2023](https://ama
 
 - **BM25** — keyword-based retrieval using tokenized reviews
 - **Semantic Search** — dense retrieval using `all-MiniLM-L6-v2` embeddings and FAISS vector index
-- **Interactive App** — Streamlit app to query both systems and provide feedback
+- **Interactive App** — Streamlit app with search and RAG-based question answering
+- **RAG Pipeline** — Retrieval-Augmented Generation using semantic retrieval + Groq LLM (Llama 3.1)
 
 ## Repository Structure
 ```
@@ -23,15 +24,19 @@ DSCI_575_project_shrijaa_csasi/
 │ └── processed/ # parquet files, BM25 index, FAISS index
 │
 ├── notebooks/
-│ └── milestone1_exploration.ipynb # EDA, preprocessing, LangChain docs
+│ ├── milestone1_exploration.ipynb # EDA, preprocessing, LangChain docs
+| └── milestone2_rag.ipynb # RAG experiments and prompt evaluation
 │
 ├── src/
 │ ├── utils.py # shared document loading and text preprocessing
 │ ├── bm25.py # BM25 retriever (build, save, load, search)
-│ └── semantic.py # Semantic retriever (FAISS + embeddings)
+│ ├── semantic.py # Semantic retriever (FAISS + embeddings)
+| ├── rag_pipeline.py # RAG pipeline (retrieval + generation)
+│ └── prompts.py # prompt templates for RAG
 │
 ├── results/
-│ └── milestone1_discussion.md # qualitative evaluation of retrieval methods
+│ ├──milestone1_discussion.md # qualitative evaluation of retrieval methods
+| └── milestone2_discussion.md # RAG evaluation and prompt comparison
 │
 └── app/
   └── app.py # Streamlit search app
@@ -98,9 +103,29 @@ streamlit run app/app.py --server.fileWatcherType none
 ```
 **The app provides:**
 
-- BM25 mode — keyword-based search with rank-based scoring
-- Semantic mode — embedding-based search with similarity scores
-- 👍 / 👎 feedback stored to feedback.csv
+- **BM25 mode** — keyword-based search with rank-based scoring  
+- **Semantic mode** — embedding-based search with similarity scores  
+- **RAG mode** — context-aware answer generation using retrieved reviews  
+- 👍 / 👎 feedback stored to `feedback.csv`  
+
+##  RAG Pipeline
+
+This project extends search with a **Retrieval-Augmented Generation (RAG)** pipeline.
+
+- **Retrievers**: Semantic (FAISS), BM25, and Hybrid (combined + deduplicated results)  
+- **Context Building**: Cleans and structures top-k reviews into a prompt-ready format  
+- **Prompting**: Templates defined in `src/prompts.py`  
+- **LLM**: Groq API (`llama-3.1-8b-instant`) for answer generation  
+- **Pipeline**: Implemented in `src/rag_pipeline.py` using LCEL  
+
+### App Updates
+- Tab-based UI: `Search` / `RAG`  
+- Generated answer shown above retrieved documents  
+- Users can verify results via product links: `amazon.com/dp/<ASIN>`
+
+## RAG Workflow
+
+![RAG Workflow](img/575_workflow_diagram.png)
 
 ## Dataset:
 - Source: [Amazon Reviews 2023](https://amazon-reviews-2023.github.io/) dataset (Digital Music category)
