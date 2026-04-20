@@ -21,8 +21,8 @@ def get_faiss():
     return load_faiss()
 
 
-def clean_text(text):
-    return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(text))).strip()
+# def clean_text(text):
+#     return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(text))).strip()
 
 
 def save_feedback(query, result, feedback):
@@ -74,6 +74,8 @@ def render_search_mode():
         st.session_state.prev_mode = search_mode
         st.rerun()
 
+    st.caption(f"Current mode: {search_mode}")
+    
     # Form
     with st.form("search_form"):
         query = st.text_input(

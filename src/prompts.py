@@ -1,10 +1,11 @@
 import re
 
-def clean_text(text):
-    return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(text))).strip()
+# def clean_text(text):
+#     return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(text))).strip()
 
 # Prompt Variant 1 — Basic
 def prompt_v1(query, context):
+    """Simple prompt that provides context and asks for an answer."""
     return f"""You are a helpful Amazon shopping assistant.
 Answer the question using the following context (real product reviews + metadata).
 Always cite the product ASIN when possible.
@@ -20,6 +21,7 @@ Answer:
 
 # Prompt Variant 2 — Strict
 def prompt_v2(query, context):
+    """Prompt that enforces answering only from the given context."""
     return f"""You are a helpful assistant answering questions using ONLY the given context.
 If the answer is not in the context, say "I don't know".
 
@@ -34,6 +36,7 @@ Answer clearly and concisely:
 
 # Prompt Variant 3 — Structured (used by default)
 def prompt_v3(query, context):
+    """Structured prompt for music recommendations."""
     return f"""
 You are a music recommendation assistant.
 
@@ -57,4 +60,5 @@ Answer:
 
 # Default used by the pipeline
 def build_rag_prompt(query, context):
+    """Wrapper to build the RAG prompt. Currently uses the structured variant."""
     return prompt_v3(query, context)

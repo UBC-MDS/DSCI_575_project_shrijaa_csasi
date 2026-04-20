@@ -15,6 +15,7 @@ CORPUS_PATH = str(_ROOT / "data/processed/bm25_corpus.pkl")
 
 # Build BM25 Index
 def build_bm25(documents):
+    """Tokenizes documents and builds BM25 index. Returns retriever and tokenized corpus."""
     tokenized_corpus = []
     # Apply preprocessing
     for doc in documents:
@@ -24,10 +25,11 @@ def build_bm25(documents):
         doc.page_content = " ".join(tokens)  
 
     retriever = BM25Retriever.from_documents(documents)
-    return retriever,tokenized_corpus
+    return retriever, tokenized_corpus
 
 # Save BM25 Index
 def save_bm25(retriever,tokenized_corpus):
+    """Serializes the BM25 retriever and tokenized corpus to disk as pickle files."""
     with open(INDEX_PATH, "wb") as f:
         pickle.dump(retriever, f)
     with open(CORPUS_PATH, "wb") as f:
@@ -35,11 +37,13 @@ def save_bm25(retriever,tokenized_corpus):
 
 # Load BM25 Index
 def load_bm25():
+    """Deserializes and returns the BM25 retriever from disk."""
     with open(INDEX_PATH, "rb") as f:
         return pickle.load(f)
 
 # Search Function
 def search(query, retriever, k=5):
+    """Preprocesses the query, performs BM25 search, and returns top-k matching documents."""
     query_tokens = preprocess_text(query)
     query_clean = " ".join(query_tokens)
 

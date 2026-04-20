@@ -17,6 +17,7 @@ MODEL_NAME = "llama-3.1-8b-instant"
 # LLM Loading (GROQ)
 # -----------------------------
 def load_llm():
+    """Initializes and returns the GROQ client."""
     client = Groq(api_key=os.getenv("GROQ_API_KEY"))
     return client
 
@@ -25,6 +26,7 @@ def load_llm():
 # Text Cleaning
 # -----------------------------
 def clean_text(text: str) -> str:
+    """Cleans text by removing HTML tags and extra whitespace."""
     text = re.sub(r"<[^>]+>", " ", str(text))
     text = re.sub(r"\s+", " ", text).strip()
     return text
@@ -34,6 +36,7 @@ def clean_text(text: str) -> str:
 # Retrieval
 # -----------------------------
 def retrieve_documents(query: str, vector_store, k: int = 5):
+    """Retrieves relevant documents from the vector store using semantic search."""
     return search_faiss(query, vector_store, k=k)
 
 
@@ -41,7 +44,7 @@ def retrieve_documents(query: str, vector_store, k: int = 5):
 # Context Building
 # -----------------------------
 def build_context(docs_with_scores, max_docs: int = 3, max_chars: int = 500):
-
+    """Builds a context string from retrieved documents for the RAG pipeline."""
     context_blocks = []
 
     for i, (doc, score) in enumerate(docs_with_scores[:max_docs], start=1):
@@ -70,7 +73,7 @@ def build_context(docs_with_scores, max_docs: int = 3, max_chars: int = 500):
 # Generation (GROQ)
 # -----------------------------
 def generate_answer(prompt, client):
-
+    """Generates an answer from the LLM given a prompt."""
     response = client.chat.completions.create(
         model=MODEL_NAME,
         messages=[
@@ -94,7 +97,7 @@ def run_rag_pipeline(
     max_docs: int = 3
     #prompt_fn=None
 ):
-
+    """Runs the full RAG pipeline: retrieval, context building, prompt construction, and answer generation."""
     if vector_store is None:
         vector_store = load_faiss()
 
@@ -131,7 +134,7 @@ def run_hybrid_rag_pipeline(
         max_docs: int = 3
         # prompt_fn=None
     ):
-
+    """Runs a RAG pipeline using a hybrid retriever (BM25 + Semantic)."""
     if hybrid_retriever is None:
         hybrid_retriever = build_hybrid_retriever(k=k)
 
@@ -164,27 +167,32 @@ def run_hybrid_rag_pipeline(
 # LCEL / Runnable Components
 # -----------------------------
 def make_retrieval_step(vector_store, k: int = 5):
+    """Creates a retrieval step for the LCEL pipeline."""
     return RunnableLambda(lambda query: retrieve_documents(query, vector_store, k=k))
 
 
 def make_context_step(max_docs: int = 3, max_chars: int = 500):
+    """Creates a context building step for the LCEL pipeline."""
     return RunnableLambda(lambda docs: build_context(docs, max_docs=max_docs, max_chars=max_chars))
 
 
 def make_prompt_step():
+    """Creates a prompt building step for the LCEL pipeline."""
     return RunnableLambda(lambda x: build_rag_prompt(x["query"], x["context"]))
 
 
 def make_generation_step(llm):
+    """Creates a generation step for the LCEL pipeline."""
     return RunnableLambda(lambda prompt: generate_answer(prompt, llm))
 
 
 def build_lcel_rag_chain(vector_store, llm, k: int = 5, max_docs: int = 3):
-
+    """Builds an LCEL chain for RAG retrieval and generation."""
     retrieval_step = make_retrieval_step(vector_store, k=k)
     context_step = make_context_step(max_docs=max_docs)
 
     def prepare_prompt_inputs(query: str):
+        """Prepares inputs for the prompt step by running retrieval and context building."""
         docs = retrieval_step.invoke(query)
         context = context_step.invoke(docs)
         return {"query": query, "context": context}

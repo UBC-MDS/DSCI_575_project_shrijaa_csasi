@@ -89,7 +89,7 @@ Open and run all cells in the notebook:
 ```
 jupyter lab notebooks/milestone1_exploration.ipynb
 ```
-This downloads 20k records from the Amazon Reviews 2023 API, builds a stratified sample, applies text preprocessing, and saves `documents.parquet`.
+This downloads the full Digital Music dataset (1.5M reviews, ~70k products), selects the single most helpful review per unique product (67k documents), applies text preprocessing, and saves `documents.parquet`.
 
 #### Step 2 - Build BM25 index
 ```
