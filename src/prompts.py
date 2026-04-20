@@ -1,8 +1,5 @@
 import re
 
-# def clean_text(text):
-#     return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(text))).strip()
-
 # Prompt Variant 1 — Basic
 def prompt_v1(query, context):
     """Simple prompt that provides context and asks for an answer."""

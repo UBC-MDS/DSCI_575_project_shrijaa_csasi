@@ -20,11 +20,6 @@ def get_bm25():
 def get_faiss():
     return load_faiss()
 
-
-# def clean_text(text):
-#     return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(text))).strip()
-
-
 def save_feedback(query, result, feedback):
     row = {
         "query": query,

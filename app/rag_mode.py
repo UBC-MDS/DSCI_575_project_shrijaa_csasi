@@ -6,10 +6,6 @@ import re
 from src.rag_pipeline import run_rag_pipeline, run_hybrid_rag_pipeline
 from src.prompts import prompt_v1, prompt_v2, prompt_v3, build_rag_prompt
 
-# def clean_text(text):
-#     return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(text))).strip()
-
-
 def render_rag_mode():
 
     # Mode selector
