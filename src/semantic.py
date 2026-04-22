@@ -25,11 +25,13 @@ FAISS_PATH = str(_ROOT / "data/processed/faiss_index")
 
 # -------- Embeddings --------
 def get_embeddings():
+    """Returns a HuggingFaceEmbeddings instance for generating sentence embeddings."""
     return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 
 # -------- Build --------
 def build_faiss(documents):
+    """Builds a FAISS vector store from the given documents."""
     embeddings = get_embeddings()
     vector_store = FAISS.from_documents(documents, embeddings)
     return vector_store
@@ -37,11 +39,13 @@ def build_faiss(documents):
 
 # -------- Save --------
 def save_faiss(vector_store):
+    """Saves the FAISS vector store to disk."""
     vector_store.save_local(FAISS_PATH)
 
 
 # -------- Load --------
 def load_faiss():
+    """Loads the FAISS vector store from disk."""
     embeddings = get_embeddings()
     vector_store = FAISS.load_local(
         FAISS_PATH,
@@ -53,15 +57,13 @@ def load_faiss():
 
 # -------- Search --------
 def search_faiss(query, vector_store, k=5):
-    """
-    Returns:
-        List of (Document, score)
-    """
+    """Performs a similarity search on the FAISS vector store."""
     return vector_store.similarity_search_with_score(query, k=k)
 
 
 # -------- Retriever (for LCEL) --------
 def get_retriever(vector_store, k=5):
+    """Returns a retriever function that can be used in a LangSmith evaluation."""
     return vector_store.as_retriever(search_kwargs={"k": k})
 
 

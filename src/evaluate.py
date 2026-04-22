@@ -27,6 +27,7 @@ QUERIES = [
 TOP_K = 5
 
 def format_bm25_results(docs):
+    """Formats BM25 results into markdown table rows."""
     rows = []
     for i, doc in enumerate(docs, 1):
         title  = doc.metadata.get("product_title", "N/A")
@@ -37,6 +38,7 @@ def format_bm25_results(docs):
     return rows
 
 def format_semantic_results(docs_and_scores):
+    """Formats semantic search results (with scores) into markdown table rows."""
     rows = []
     for i, (doc, score) in enumerate(docs_and_scores, 1):
         title   = doc.metadata.get("product_title", "N/A")

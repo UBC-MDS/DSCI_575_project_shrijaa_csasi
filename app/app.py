@@ -34,8 +34,6 @@ with st.sidebar:
         st.session_state.page = "RAG"
         st.rerun()
 
-# st.title("Amazon Review Search")
-# st.caption("Search through Amazon Digital Music reviews using keyword (BM25) or semantic similarity. Or ask questions about the products using AI-powered retrieval.")
 if st.session_state.page == "Search":
     render_search_mode()
 else:

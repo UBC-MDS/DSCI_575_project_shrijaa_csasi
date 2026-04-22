@@ -6,10 +6,6 @@ import re
 from src.rag_pipeline import run_rag_pipeline, run_hybrid_rag_pipeline
 from src.prompts import prompt_v1, prompt_v2, prompt_v3, build_rag_prompt
 
-def clean_text(text):
-    return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(text))).strip()
-
-
 def render_rag_mode():
 
     # Mode selector
@@ -36,13 +32,15 @@ def render_rag_mode():
     # selected_prompt_fn = PROMPT_MAP[prompt_variant]
 
     # Input
-    query = st.text_input(
-        "Ask a question",
-        placeholder="e.g. What is a good relaxing album?"
-    )
+    with st.form("rag_form"):
+        query = st.text_input(
+            "Ask a question",
+            placeholder="e.g. What is a good relaxing album?"
+        )
+        submitted = st.form_submit_button("Generate Answer", type="primary")
 
     # Run
-    if st.button("Generate Answer", type="primary") and query:
+    if submitted and query:
 
         if rag_mode == "Semantic RAG":
             st.info("Using Semantic RAG (full pipeline)")
@@ -59,7 +57,7 @@ def render_rag_mode():
         context = result["context"]
 
         # Answer panel 
-        st.markdown("## Answer")
+        st.markdown("### Answer")
         st.write(answer)
         st.divider()
 
@@ -68,14 +66,14 @@ def render_rag_mode():
             st.write(context)
 
         # Retrieved documents
-        st.markdown("## Retrieved Documents")
-
+        st.markdown("### Retrieved Documents")
         for i, (doc, score) in enumerate(docs):
-            st.markdown(f"### {i+1}. {doc.metadata.get('product_title', 'Unknown')}")
-            # only removing HTML tags and extra whitespace, no tokenization or stopword removal since we want to show the original review text in the results
-            st.write(re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(doc.metadata.get("text", "")))).strip()[:200] + "...")
-            if score is not None:
-                st.caption(f"Score: {score:.4f}")
-            else:
-                st.caption(f"Rank: {i+1}")
-            st.divider()
+            with st.container(border=True):    
+                st.markdown(f"#### {i+1}. {doc.metadata.get('product_title', 'Unknown')}")
+                # only removing HTML tags and extra whitespace, no tokenization or stopword removal since we want to show the original review text in the results
+                st.write(re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(doc.metadata.get("text", "")))).strip()[:200] + "...")
+                if score is not None:
+                    st.caption(f"Score: {score:.4f}")
+                else:
+                    st.caption(f"Rank: {i+1}")
+                #st.divider()
