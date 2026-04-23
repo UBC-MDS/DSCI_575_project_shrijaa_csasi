@@ -10,6 +10,7 @@ STOPWORDS = set(stopwords.words("english"))
 
 
 def load_documents(data_path):
+    """Loads documents from a Parquet file and returns a list of LangChain Document objects."""
     df = pd.read_parquet(data_path)
     if 'text_clean' not in df.columns:
         raise ValueError(
@@ -26,6 +27,7 @@ def load_documents(data_path):
     ]
 
 def preprocess_text(text):
+    """Preprocesses text by lowercasing, removing punctuation, and removing stopwords."""
     text = text.lower()
     text = re.sub(r"[^\w\s]", "", text)   # remove punctuation
     tokens = [t for t in text.split() if t not in STOPWORDS]

@@ -206,6 +206,9 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-#ignore data files
+# ignore data files
 data/raw/
 .DS_Store
+
+# runtime-generated files
+feedback.csv

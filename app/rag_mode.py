@@ -6,20 +6,15 @@ import re
 from src.rag_pipeline import run_rag_pipeline, run_hybrid_rag_pipeline
 from src.prompts import prompt_v1, prompt_v2, prompt_v3, build_rag_prompt
 
-def clean_text(text):
-    return re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(text))).strip()
+def render_rag_mode(vector_store, bm25_retriever, llm):
+    """Renders the RAG tab UI using pre-loaded FAISS, BM25, and LLM instances."""
 
-
-def render_rag_mode():
-
-    # Mode selector
     rag_mode = st.radio(
         "RAG Retrieval Mode:",
         ["Semantic RAG", "Hybrid RAG"],
         horizontal=True,
         help="Semantic: FAISS retrieval. Hybrid: BM25 + Semantic ensemble."
     )
-
     st.caption(f"Current mode: {rag_mode}")
 
     # Do not delete: this section is to test different prompt variants for RAG answer generation. 
@@ -36,22 +31,24 @@ def render_rag_mode():
     # selected_prompt_fn = PROMPT_MAP[prompt_variant]
 
     # Input
-    query = st.text_input(
-        "Ask a question",
-        placeholder="e.g. What is a good relaxing album?"
-    )
+    with st.form("rag_form"):
+        query = st.text_input(
+            "Ask a question",
+            placeholder="e.g. What is a good relaxing album?"
+        )
+        submitted = st.form_submit_button("Generate Answer", type="primary")
 
-    # Run
-    if st.button("Generate Answer", type="primary") and query:
-
+    if submitted and query:
         if rag_mode == "Semantic RAG":
             st.info("Using Semantic RAG (full pipeline)")
-            result = run_rag_pipeline(query)
+            result = run_rag_pipeline(query, vector_store=vector_store, llm=llm)
             docs = result["retrieved_docs"]
 
         elif rag_mode == "Hybrid RAG":
             st.info("Using Hybrid RAG (BM25 + Semantic ensemble)")
-            result = run_hybrid_rag_pipeline(query)
+            from src.hybrid import build_hybrid_retriever
+            hybrid_retriever = build_hybrid_retriever(bm25_retriever, vector_store)
+            result = run_hybrid_rag_pipeline(query, hybrid_retriever=hybrid_retriever, llm=llm)
             docs = [(doc, None) for doc in result["retrieved_docs"]]
 
         # Extract outputs
@@ -59,7 +56,7 @@ def render_rag_mode():
         context = result["context"]
 
         # Answer panel 
-        st.markdown("## Answer")
+        st.markdown("### Answer")
         st.write(answer)
         st.divider()
 
@@ -68,14 +65,14 @@ def render_rag_mode():
             st.write(context)
 
         # Retrieved documents
-        st.markdown("## Retrieved Documents")
-
+        st.markdown("### Retrieved Documents")
         for i, (doc, score) in enumerate(docs):
-            st.markdown(f"### {i+1}. {doc.metadata.get('product_title', 'Unknown')}")
-            # only removing HTML tags and extra whitespace, no tokenization or stopword removal since we want to show the original review text in the results
-            st.write(re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(doc.metadata.get("text", "")))).strip()[:200] + "...")
-            if score is not None:
-                st.caption(f"Score: {score:.4f}")
-            else:
-                st.caption(f"Rank: {i+1}")
-            st.divider()
+            with st.container(border=True):    
+                st.markdown(f"#### {i+1}. {doc.metadata.get('product_title', 'Unknown')}")
+                # only removing HTML tags and extra whitespace, no tokenization or stopword removal since we want to show the original review text in the results
+                st.write(re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', str(doc.metadata.get("text", "")))).strip()[:200] + "...")
+                if score is not None:
+                    st.caption(f"Score: {score:.4f}")
+                else:
+                    st.caption(f"Rank: {i+1}")
+                #st.divider()

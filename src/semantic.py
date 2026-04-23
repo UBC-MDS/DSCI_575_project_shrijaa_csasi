@@ -3,6 +3,7 @@
 import os
 import logging
 from pathlib import Path
+from src.s3_utils import download_and_extract_zip
 
 # Silence HF logs
 os.environ["HF_HUB_VERBOSITY"] = "error"
@@ -25,11 +26,13 @@ FAISS_PATH = str(_ROOT / "data/processed/faiss_index")
 
 # -------- Embeddings --------
 def get_embeddings():
+    """Returns a HuggingFaceEmbeddings instance for generating sentence embeddings."""
     return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 
 # -------- Build --------
 def build_faiss(documents):
+    """Builds a FAISS vector store from the given documents."""
     embeddings = get_embeddings()
     vector_store = FAISS.from_documents(documents, embeddings)
     return vector_store
@@ -37,31 +40,41 @@ def build_faiss(documents):
 
 # -------- Save --------
 def save_faiss(vector_store):
+    """Saves the FAISS vector store to disk."""
     vector_store.save_local(FAISS_PATH)
 
 
 # -------- Load --------
 def load_faiss():
+    """Loads FAISS index, downloading from S3 if needed."""
+
+    # Ensure FAISS index exists locally
+    download_and_extract_zip(
+        bucket="dsci575-project-data",
+        key="faiss_index.zip",
+        extract_to=str(_ROOT / "data/processed")
+    )
+
     embeddings = get_embeddings()
+
     vector_store = FAISS.load_local(
         FAISS_PATH,
         embeddings,
         allow_dangerous_deserialization=True
     )
+
     return vector_store
 
 
 # -------- Search --------
 def search_faiss(query, vector_store, k=5):
-    """
-    Returns:
-        List of (Document, score)
-    """
+    """Performs a similarity search on the FAISS vector store."""
     return vector_store.similarity_search_with_score(query, k=k)
 
 
 # -------- Retriever (for LCEL) --------
 def get_retriever(vector_store, k=5):
+    """Returns a retriever function that can be used in a LangSmith evaluation."""
     return vector_store.as_retriever(search_kwargs={"k": k})
 
 
