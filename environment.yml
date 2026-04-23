@@ -5,6 +5,7 @@ channels:
 dependencies:
   - python=3.11
   - pip
+  - faiss-cpu
   - pip:
       - -r requirements.txt
       - nltk

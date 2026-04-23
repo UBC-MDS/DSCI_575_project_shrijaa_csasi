@@ -11,6 +11,7 @@ import streamlit as st
 from app.search_mode import render_search_mode
 from app.rag_mode import render_rag_mode
 
+
 st.set_page_config(page_title="Product Search Engine", layout="wide")
 
 st.markdown("""
