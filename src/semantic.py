@@ -3,6 +3,7 @@
 import os
 import logging
 from pathlib import Path
+from src.s3_utils import download_and_extract_zip
 
 # Silence HF logs
 os.environ["HF_HUB_VERBOSITY"] = "error"
@@ -45,13 +46,23 @@ def save_faiss(vector_store):
 
 # -------- Load --------
 def load_faiss():
-    """Loads the FAISS vector store from disk."""
+    """Loads FAISS index, downloading from S3 if needed."""
+
+    # Ensure FAISS index exists locally
+    download_and_extract_zip(
+        bucket="dsci575-project-data",
+        key="faiss_index.zip",
+        extract_to=str(_ROOT / "data/processed")
+    )
+
     embeddings = get_embeddings()
+
     vector_store = FAISS.load_local(
         FAISS_PATH,
         embeddings,
         allow_dangerous_deserialization=True
     )
+
     return vector_store
 
 
