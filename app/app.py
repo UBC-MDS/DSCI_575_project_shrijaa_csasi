@@ -11,6 +11,11 @@ import streamlit as st
 from app.search_mode import render_search_mode
 from app.rag_mode import render_rag_mode
 
+if st.button("🔄 Reset App"):
+    st.cache_resource.clear()
+    st.cache_data.clear()
+    st.rerun()
+
 st.set_page_config(page_title="Product Search Engine", layout="wide")
 
 st.markdown("""
