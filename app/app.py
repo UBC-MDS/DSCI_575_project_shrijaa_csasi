@@ -13,8 +13,7 @@ from app.rag_mode import render_rag_mode
 
 if st.button("🔄 Reset App"):
     st.cache_resource.clear()
-    st.cache_data.clear()
-    st.rerun()
+    st.info("Cache cleared. Run your query again.")
 
 st.set_page_config(page_title="Product Search Engine", layout="wide")
 
