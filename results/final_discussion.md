@@ -81,6 +81,26 @@ The `LIMIT` was removed, and the sampling query was restructured to select exact
 **Model chosen for the app:** `llama-3.1-8b-instant`  
 **Reason:** The quality improvement from 70B is modest and limited to subtle conciseness and relevance gains. For an interactive application, `llama-3.1-8b-instant` provides significantly lower latency on Groq's free tier, making it the better choice where response speed matters. If the application were batch-processing or offline, the 70B model would be preferred.
 
+## Step 2: Additional Feature — Option 4: Deploy Your Application
+
+### What You Implemented
+
+The application was deployed to **Streamlit Community Cloud** at a persistent, publicly accessible URL:
+
+**Live app:** https://dsci575projectshrijaacsasi.streamlit.app
+
+### Approach and Design Decisions
+
+- **Platform:** Streamlit Community Cloud was chosen because it provides free, zero-infrastructure hosting for Streamlit apps and integrates directly with GitHub — a push to the `main` branch triggers an automatic redeploy.
+- **Index files:** The processed FAISS index (`data/processed/faiss_index/`) and BM25 index (`data/processed/bm25_index.pkl`, `bm25_corpus.pkl`) are stored in an **Amazon S3 bucket** instead of the repository due to GitHub file size limits. At runtime, the application downloads these files from S3 (FAISS as a compressed `.zip`, BM25 as `.pkl`) and loads them into memory.
+
+- **API key management:** The Groq API key is stored as a Streamlit Cloud Secret (`GROQ_API_KEY`), which injects it as an environment variable at runtime. The `.env` file is not used on the cloud — `load_dotenv()` in `app/app.py` gracefully no-ops when the file is absent.
+- **Caching:** `@st.cache_resource` on `get_bm25()` and `get_faiss()` in `app/search_mode.py` ensures indices are loaded into memory once per session and reused across queries, keeping response times acceptable on the free tier.
+
+### Results
+
+All three modes (BM25 search, Semantic search, Hybrid RAG) are available in the deployed app. The app loads in ~30–40 seconds on first run (index loading + model download) and responds to queries in 2–5 seconds thereafter.
+
 ## Cloud Deployment Plan
 This section outlines a high-level plan for deploying the Amazon - Digital Music product recommendation system on AWS.
 
@@ -124,6 +144,25 @@ This section outlines a high-level plan for deploying the Amazon - Digital Music
   - Use versioned storage in S3 to manage updates  
   - Deploy updated indexes without downtime by reloading them in new instances  
 
+### Architectural Justification
+
+- **S3 for index storage** is appropriate because FAISS and BM25 indices are large binary blobs (hundreds of MB) that benefit from S3's durable object storage and low per-GB cost. Unlike a database, these files are read-heavy and written infrequently, making object storage the right fit.
+- **ECS/Fargate over AWS Lambda** is required because the app loads both indices into memory at startup (~500MB+). Lambda functions are stateless and have a 10GB memory limit with cold-start penalties, making them unsuitable for in-memory index serving. ECS containers stay resident and serve requests from warm memory.
+- **Groq API over self-hosted LLM** eliminates the need for GPU instances (which cost $1–3/hour on AWS), keeping the deployment cost near zero for low-to-moderate traffic while providing sub-second inference.
+- **Indices loaded from S3 at container startup** and held in memory for the container's lifetime. This avoids re-downloading on every request while allowing the container to be replaced with an updated index by terminating and relaunching it with a new S3 version.
+
 ### Summary
 
 This architecture leverages S3 for storage, scalable compute (EC2/ECS), and external LLM APIs to create a cost-effective, scalable, and maintainable deployment for the recommendation system.
+
+## Step 3: Improve Documentation and Code Quality
+
+### Documentation Update
+- Updated `README.md` to include the live Streamlit app URL, `results/final_discussion.md` in the repository structure, and a Streamlit Cloud deployment section with secrets setup instructions.
+- All three retrieval modes and the RAG pipeline are described with usage examples.
+
+### Code Quality Changes
+- All source files in `src/` use `pathlib.Path` for file paths — no hardcoded strings.
+- API key loaded via `python-dotenv` from `.env` locally; injected as a Streamlit Cloud Secret in production. Key is never in source code.
+- All functions across `src/` and `app/` include docstrings.
+- `feedback.csv` and `.env`added to `.gitignore` to prevent accidental commits of runtime-generated and sensitive files.
