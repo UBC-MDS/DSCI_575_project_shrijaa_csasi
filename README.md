@@ -2,6 +2,8 @@
 
 An information retrieval system for Amazon Digital Music reviews, supporting both **BM25 keyword search** and **semantic search** via sentence embeddings.
 
+[![Live App](https://img.shields.io/badge/Live%20App-Streamlit-blue?style=for-the-badge)](https://dsci575projectshrijaacsasi.streamlit.app/)
+
 ## Project Overview
 
 This project explores retrieval methods on the [Amazon Reviews 2023](https://amazon-reviews-2023.github.io/) dataset (Digital Music category). It implements:
@@ -39,8 +41,9 @@ DSCI_575_project_shrijaa_csasi/
 │ └── prompts.py # prompt templates for RAG
 │
 ├── results/
-│ ├──milestone1_discussion.md # qualitative evaluation of retrieval methods
-| └── milestone2_discussion.md # RAG evaluation and prompt comparison
+│ ├── milestone1_discussion.md # qualitative evaluation of retrieval methods
+│ ├── milestone2_discussion.md  # RAG evaluation and prompt comparison
+│ └── final_discussion.md       # dataset scaling, LLM experiment, deployment, cloud plan
 │
 └── app/
   ├── app.py # Streamlit search app
@@ -48,6 +51,9 @@ DSCI_575_project_shrijaa_csasi/
   └── search_mode.py
 
 ```
+
+## Demo
+![demo](img/demo.gif)
 
 ## Setup
 

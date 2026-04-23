@@ -1,26 +1,18 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-import os
+from pathlib import Path
 import re
 
-from src.bm25 import load_bm25, search as bm25_search
-from src.semantic import load_faiss, search_faiss as semantic_search
+from src.bm25 import search as bm25_search
+from src.semantic import search_faiss as semantic_search
 
-FEEDBACK_FILE = "feedback.csv"
+FEEDBACK_FILE = Path(__file__).resolve().parents[1] / "feedback.csv"
 TOP_K = 5
 
-# Load BM25 retriever (cached) 
-@st.cache_resource
-def get_bm25():
-    return load_bm25()
-
-# Load FAISS retriever (cached) 
-@st.cache_resource
-def get_faiss():
-    return load_faiss()
 
 def save_feedback(query, result, feedback):
+    """Appends a feedback row (upvote/downvote) to the feedback CSV file."""
     row = {
         "query": query,
         "title": result["title"],
@@ -30,20 +22,15 @@ def save_feedback(query, result, feedback):
         "feedback": feedback,
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
-
     df = pd.DataFrame([row])
-
-    if os.path.exists(FEEDBACK_FILE):
+    if FEEDBACK_FILE.exists():
         df.to_csv(FEEDBACK_FILE, mode="a", header=False, index=False)
     else:
         df.to_csv(FEEDBACK_FILE, index=False)
 
 
-def render_search_mode():
-
-    bm25_retriever = get_bm25()
-    faiss_retriever = get_faiss()
-
+def render_search_mode(bm25_retriever, faiss_retriever):
+    """Renders the Search tab UI using pre-loaded BM25 and FAISS indices."""
     # Session State
     if "results" not in st.session_state:
         st.session_state.results = []
