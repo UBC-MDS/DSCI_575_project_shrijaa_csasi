@@ -4,10 +4,9 @@ import re
 import os
 from groq import Groq
 from langchain_core.runnables import RunnableLambda
-
+from src.bm25 import load_bm25
 from src.semantic import load_faiss, search_faiss
 from src.prompts import build_rag_prompt
-from app.search_mode import get_bm25, get_faiss
 from src.hybrid import build_hybrid_retriever, search_hybrid
 
 
@@ -99,8 +98,7 @@ def run_rag_pipeline(
 ):
     """Runs the full RAG pipeline: semantic retrieval + generation."""
     if vector_store is None:
-        from app.search_mode import get_faiss
-        vector_store = get_faiss()
+        vector_store = load_faiss()
 
     if llm is None:
         llm = load_llm()
@@ -134,9 +132,7 @@ def run_hybrid_rag_pipeline(
     """Runs a RAG pipeline using a hybrid retriever (BM25 + Semantic)."""
 
     if hybrid_retriever is None:
-        bm25 = get_bm25()
-        faiss = get_faiss()
-        hybrid_retriever = build_hybrid_retriever(bm25, faiss, k=k)
+        hybrid_retriever = build_hybrid_retriever(load_bm25(), load_faiss(), k=k)
 
     if llm is None:
         llm = load_llm()
@@ -166,26 +162,32 @@ def run_hybrid_rag_pipeline(
 # LCEL / Runnable Components
 # -----------------------------
 def make_retrieval_step(vector_store, k: int = 5):
+    """Creates a RunnableLambda retrieval step for use in an LCEL chain."""
     return RunnableLambda(lambda query: retrieve_documents(query, vector_store, k=k))
 
 
 def make_context_step(max_docs: int = 3, max_chars: int = 500):
+    """Creates a RunnableLambda context-building step for use in an LCEL chain."""
     return RunnableLambda(lambda docs: build_context(docs, max_docs=max_docs, max_chars=max_chars))
 
 
 def make_prompt_step():
+    """Creates a RunnableLambda prompt-building step for use in an LCEL chain."""
     return RunnableLambda(lambda x: build_rag_prompt(x["query"], x["context"]))
 
 
 def make_generation_step(llm):
+    """Creates a RunnableLambda generation step for use in an LCEL chain."""
     return RunnableLambda(lambda prompt: generate_answer(prompt, llm))
 
 
 def build_lcel_rag_chain(vector_store, llm, k: int = 5, max_docs: int = 3):
+    """Assembles a full LCEL chain: retrieval → context → prompt → generation."""
     retrieval_step = make_retrieval_step(vector_store, k=k)
     context_step = make_context_step(max_docs=max_docs)
 
     def prepare_prompt_inputs(query: str):
+        """Runs retrieval and context building and returns a dict for the prompt step."""
         docs = retrieval_step.invoke(query)
         context = context_step.invoke(docs)
         return {"query": query, "context": context}

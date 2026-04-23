@@ -6,16 +6,15 @@ import re
 from src.rag_pipeline import run_rag_pipeline, run_hybrid_rag_pipeline
 from src.prompts import prompt_v1, prompt_v2, prompt_v3, build_rag_prompt
 
-def render_rag_mode():
+def render_rag_mode(vector_store, bm25_retriever, llm):
+    """Renders the RAG tab UI using pre-loaded FAISS, BM25, and LLM instances."""
 
-    # Mode selector
     rag_mode = st.radio(
         "RAG Retrieval Mode:",
         ["Semantic RAG", "Hybrid RAG"],
         horizontal=True,
         help="Semantic: FAISS retrieval. Hybrid: BM25 + Semantic ensemble."
     )
-
     st.caption(f"Current mode: {rag_mode}")
 
     # Do not delete: this section is to test different prompt variants for RAG answer generation. 
@@ -39,17 +38,17 @@ def render_rag_mode():
         )
         submitted = st.form_submit_button("Generate Answer", type="primary")
 
-    # Run
     if submitted and query:
-
         if rag_mode == "Semantic RAG":
             st.info("Using Semantic RAG (full pipeline)")
-            result = run_rag_pipeline(query)
+            result = run_rag_pipeline(query, vector_store=vector_store, llm=llm)
             docs = result["retrieved_docs"]
 
         elif rag_mode == "Hybrid RAG":
             st.info("Using Hybrid RAG (BM25 + Semantic ensemble)")
-            result = run_hybrid_rag_pipeline(query)
+            from src.hybrid import build_hybrid_retriever
+            hybrid_retriever = build_hybrid_retriever(bm25_retriever, vector_store)
+            result = run_hybrid_rag_pipeline(query, hybrid_retriever=hybrid_retriever, llm=llm)
             docs = [(doc, None) for doc in result["retrieved_docs"]]
 
         # Extract outputs
