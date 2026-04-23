@@ -99,7 +99,8 @@ def run_rag_pipeline(
 ):
     """Runs the full RAG pipeline: semantic retrieval + generation."""
     if vector_store is None:
-        vector_store = load_faiss()
+        from app.search_mode import get_faiss
+        vector_store = get_faiss()
 
     if llm is None:
         llm = load_llm()
