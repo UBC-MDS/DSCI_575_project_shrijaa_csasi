@@ -80,3 +80,50 @@ The `LIMIT` was removed, and the sampling query was restructured to select exact
 
 **Model chosen for the app:** `llama-3.1-8b-instant`  
 **Reason:** The quality improvement from 70B is modest and limited to subtle conciseness and relevance gains. For an interactive application, `llama-3.1-8b-instant` provides significantly lower latency on Groq's free tier, making it the better choice where response speed matters. If the application were batch-processing or offline, the 70B model would be preferred.
+
+## Cloud Deployment Plan
+This section outlines a high-level plan for deploying the Amazon - Digital Music product recommendation system on AWS.
+
+### Data Storage
+
+- **Raw Data**  
+  Stored in **Amazon S3** as compressed `.jsonl.gz` files. S3 provides scalable and durable storage for large datasets.
+
+- **Processed Data**  
+  Cleaned and structured data (e.g., `documents.parquet`) stored in S3 for efficient access and reuse.
+
+- **Vector Index (FAISS)**  
+  The FAISS index is stored in S3 and downloaded to the application instance at startup. This avoids recomputation and reduces deployment time.
+
+- **BM25 Index**  
+  BM25 index files (`.pkl`) are also stored in S3 and loaded into memory when the app initializes.
+
+### Compute
+
+- **Application Hosting**  
+  The application can be deployed using **AWS EC2** or containerized using **AWS ECS/Fargate** for better scalability and management.
+
+- **Handling Multiple Users (Concurrency)**  
+  - Use a load balancer (e.g., **Application Load Balancer**) to distribute traffic  
+  - Scale instances horizontally using **Auto Scaling Groups** or ECS services  
+  - Cache frequently accessed data (e.g., indexes) in memory to reduce latency  
+
+- **LLM Inference**  
+  - Use external API (e.g., **Groq API**) for inference to avoid managing GPU infrastructure  
+  - This ensures low latency and simplifies deployment  
+  - Optionally, a hosted model on **SageMaker** could be used for full control  
+
+### Streaming / Updates
+
+- **Incorporating New Products**  
+  - Periodically ingest new review data into S3  
+  - Trigger a batch pipeline (e.g., via AWS Lambda or scheduled jobs) to update processed data and indexes  
+
+- **Keeping the Pipeline Up to Date**  
+  - Rebuild FAISS and BM25 indexes on a schedule (e.g., daily/weekly)  
+  - Use versioned storage in S3 to manage updates  
+  - Deploy updated indexes without downtime by reloading them in new instances  
+
+### Summary
+
+This architecture leverages S3 for storage, scalable compute (EC2/ECS), and external LLM APIs to create a cost-effective, scalable, and maintainable deployment for the recommendation system.

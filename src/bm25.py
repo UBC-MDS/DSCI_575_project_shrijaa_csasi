@@ -5,7 +5,7 @@ import pickle
 from pathlib import Path
 from langchain_community.retrievers import BM25Retriever
 from src.utils import load_documents, preprocess_text
-
+from src.s3_utils import download_file
 
 # Paths
 _ROOT = Path(__file__).resolve().parents[1]
@@ -37,7 +37,17 @@ def save_bm25(retriever,tokenized_corpus):
 
 # Load BM25 Index
 def load_bm25():
-    """Deserializes and returns the BM25 retriever from disk."""
+    """Deserializes and returns the BM25 retriever from disk.
+       Falls back to S3 if file is missing locally."""
+    
+    # If file doesn't exist locally → download from S3
+    if not os.path.exists(INDEX_PATH):
+        download_file(
+            bucket="dsci575-project-data",
+            key="bm25_index.pkl",  
+            local_path=INDEX_PATH
+        )
+
     with open(INDEX_PATH, "rb") as f:
         return pickle.load(f)
 
